@@ -18,7 +18,7 @@ nav.querySelectorAll('a').forEach(link => {
 
 // Scroll reveal
 const revealTargets = document.querySelectorAll(
-  '.collection-card, .product-card, .offer-card, .gallery-item, .about-media, .about-content, .contact-info, .contact-map, .process-steps li'
+  '.collection-card, .product-card, .offer-card, .shop-photo, .about-media, .about-content, .contact-info, .contact-map, .process-steps li'
 );
 revealTargets.forEach(el => el.setAttribute('data-reveal', ''));
 
@@ -147,4 +147,23 @@ if (catScroller && catTrack) {
       catScroller.scrollLeft += e.deltaY;
     }
   }, { passive: false });
+}
+
+// Enquiry form — no backend, so it composes the message and hands off to
+// WhatsApp directly. WHATSAPP_NUMBER is the same placeholder used by every
+// other WhatsApp link on the site; update it in one place once the real
+// shop number is available (search the codebase for "910000000000").
+const WHATSAPP_NUMBER = '910000000000';
+const enquiryForm = document.getElementById('enquiryForm');
+if (enquiryForm) {
+  enquiryForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = enquiryForm.name.value.trim();
+    const phone = enquiryForm.phone.value.trim();
+    const message = enquiryForm.message.value.trim();
+
+    const text = `Hi Sri Liya Silks, I'd like to enquire.\n\nName: ${name}\nPhone: ${phone}\nRequirement: ${message}`;
+    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank', 'noopener');
+  });
 }
