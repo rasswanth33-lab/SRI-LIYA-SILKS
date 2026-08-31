@@ -51,15 +51,27 @@ if (heroVideo) {
   }
 }
 
-// Category card videos — same reduced-motion respect as the hero
-document.querySelectorAll('.cat-card-media').forEach(video => {
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    video.removeAttribute('autoplay');
-    video.pause();
-  } else {
-    video.play().catch(() => {});
+// Category card videos — start only once each card enters the viewport,
+// pause once it scrolls far out of view (performance), and never autoplay
+// at all if the visitor prefers reduced motion.
+const catVideos = document.querySelectorAll('.cat-card-media');
+if (catVideos.length) {
+  const catPrefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!catPrefersReduced) {
+    const catVideoObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        const video = entry.target;
+        if (entry.isIntersecting) {
+          video.play().catch(() => {});
+        } else {
+          video.pause();
+        }
+      });
+    }, { threshold: 0.2, rootMargin: '250px 0px' });
+
+    catVideos.forEach(video => catVideoObserver.observe(video));
   }
-});
+}
 
 // Featured Categories — slow automatic horizontal drift, with full manual
 // override: drag (mouse), swipe (touch), wheel/trackpad, or the hidden
