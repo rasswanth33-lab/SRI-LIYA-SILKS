@@ -61,49 +61,78 @@ document.querySelectorAll('.cat-card-media').forEach(video => {
   }
 });
 
-// Featured Categories — cinematic horizontal scroll (desktop/tablet only).
-// A tall spacer keeps the row pinned via position:sticky while the user scrolls;
-// horizontal position is driven by how far the spacer has scrolled past, so the
-// motion is a direct, 1:1 result of scrolling rather than a separate animation.
-const catWrap = document.getElementById('catScrollWrap');
+// Featured Categories — slow automatic horizontal drift, with full manual
+// override: drag (mouse), swipe (touch), wheel/trackpad, or the hidden
+// native scrollbar all work, and auto-scroll pauses whenever the user
+// touches it, resuming after a short idle period.
+const catScroller = document.getElementById('catScroller');
 const catTrack = document.getElementById('catTrack');
 
-function catPinEnabled() {
-  return (
-    catWrap && catTrack &&
-    window.matchMedia('(min-width: 901px)').matches &&
-    !window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  );
-}
+if (catScroller && catTrack) {
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const SPEED = 0.45;        // px per frame — slow, cinematic drift
+  const RESUME_DELAY = 2600; // ms of no interaction before auto-scroll resumes
 
-function updateCatScroll() {
-  if (!catPinEnabled()) {
-    if (catTrack) catTrack.style.transform = '';
-    return;
+  let direction = 1;
+  let paused = false;
+  let resumeTimer = null;
+
+  function maxScroll() {
+    return catScroller.scrollWidth - catScroller.clientWidth;
   }
-  const rect = catWrap.getBoundingClientRect();
-  const scrollableDistance = catWrap.offsetHeight - window.innerHeight;
-  if (scrollableDistance <= 0) { catTrack.style.transform = 'translateX(0)'; return; }
 
-  let progress = -rect.top / scrollableDistance;
-  progress = Math.min(1, Math.max(0, progress));
+  function tick() {
+    if (!paused && !prefersReducedMotion) {
+      const max = maxScroll();
+      if (max > 0) {
+        let next = catScroller.scrollLeft + direction * SPEED;
+        if (next >= max) { next = max; direction = -1; }
+        if (next <= 0) { next = 0; direction = 1; }
+        catScroller.scrollLeft = next;
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
 
-  const maxTranslate = Math.max(0, catTrack.scrollWidth - catWrap.offsetWidth);
-  catTrack.style.transform = `translateX(${-progress * maxTranslate}px)`;
-}
+  function pauseAutoScroll() {
+    paused = true;
+    if (resumeTimer) clearTimeout(resumeTimer);
+    resumeTimer = setTimeout(() => { paused = false; }, RESUME_DELAY);
+  }
 
-let catTicking = false;
-function onCatScroll() {
-  if (catTicking) return;
-  catTicking = true;
-  requestAnimationFrame(() => {
-    updateCatScroll();
-    catTicking = false;
+  ['pointerdown', 'wheel', 'touchstart'].forEach(evt => {
+    catScroller.addEventListener(evt, pauseAutoScroll, { passive: true });
   });
-}
 
-if (catWrap && catTrack) {
-  window.addEventListener('scroll', onCatScroll, { passive: true });
-  window.addEventListener('resize', updateCatScroll);
-  updateCatScroll();
+  // Click-and-drag scrolling for mouse/trackpad users
+  let isDragging = false;
+  let dragStartX = 0;
+  let dragStartScroll = 0;
+
+  catScroller.addEventListener('pointerdown', (e) => {
+    isDragging = true;
+    catScroller.classList.add('dragging');
+    dragStartX = e.clientX;
+    dragStartScroll = catScroller.scrollLeft;
+    catScroller.setPointerCapture(e.pointerId);
+  });
+  catScroller.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    catScroller.scrollLeft = dragStartScroll - (e.clientX - dragStartX);
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(evt => {
+    catScroller.addEventListener(evt, () => {
+      isDragging = false;
+      catScroller.classList.remove('dragging');
+    });
+  });
+
+  // Let a plain vertical mouse wheel drive horizontal movement while hovered
+  catScroller.addEventListener('wheel', (e) => {
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      e.preventDefault();
+      catScroller.scrollLeft += e.deltaY;
+    }
+  }, { passive: false });
 }
