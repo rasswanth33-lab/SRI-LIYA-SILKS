@@ -39,7 +39,9 @@ window.addEventListener('scroll', () => {
   header.style.boxShadow = window.scrollY > 12 ? '0 8px 24px -12px rgba(43,34,26,0.25)' : 'none';
 });
 
-// Hero background video — respect reduced-motion preference
+// Hero background video — respect reduced-motion preference.
+// muted/playsInline are also set as JS properties (not just HTML attributes)
+// because some mobile browsers only honor the mute state reliably that way.
 const heroVideo = document.querySelector('.hero-media video');
 if (heroVideo) {
   const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -47,17 +49,28 @@ if (heroVideo) {
     heroVideo.removeAttribute('autoplay');
     heroVideo.pause();
   } else {
+    heroVideo.muted = true;
+    heroVideo.playsInline = true;
     heroVideo.play().catch(() => {}); // ignore autoplay-block errors
   }
 }
 
-// Category card videos — start only once each card enters the viewport,
-// pause once it scrolls far out of view (performance), and never autoplay
-// at all if the visitor prefers reduced motion.
+// Category card videos keep the native `autoplay` attribute (the most
+// reliable way to get mobile browsers to play muted video at all) and use
+// this observer only to pause them once scrolled far out of view and
+// resume when they come back — not to trigger the very first play, which
+// mobile Safari/Chrome can silently refuse if it's script-only.
 const catVideos = document.querySelectorAll('.cat-card-media');
 if (catVideos.length) {
   const catPrefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (!catPrefersReduced) {
+  if (catPrefersReduced) {
+    catVideos.forEach(video => { video.removeAttribute('autoplay'); video.pause(); });
+  } else {
+    catVideos.forEach(video => {
+      video.muted = true;
+      video.playsInline = true;
+    });
+
     const catVideoObserver = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         const video = entry.target;
