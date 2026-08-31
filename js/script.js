@@ -123,6 +123,7 @@ if (catScroller && catTrack) {
   let dragStartScroll = 0;
 
   catScroller.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'touch') return; // native touch scrolling handles this
     isDragging = true;
     catScroller.classList.add('dragging');
     dragStartX = e.clientX;
