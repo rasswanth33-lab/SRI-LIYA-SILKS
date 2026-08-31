@@ -18,7 +18,7 @@ nav.querySelectorAll('a').forEach(link => {
 
 // Scroll reveal
 const revealTargets = document.querySelectorAll(
-  '.cat-card, .collection-card, .product-card, .offer-card, .gallery-item, .about-media, .about-content, .contact-info, .contact-map'
+  '.cat-card, .collection-card, .product-card, .offer-card, .gallery-item, .about-media, .about-content, .contact-info, .contact-map, .process-steps li'
 );
 revealTargets.forEach(el => el.setAttribute('data-reveal', ''));
 
